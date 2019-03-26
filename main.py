@@ -33,8 +33,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 from cnn_finetune import make_model
-from fast_gradient_sign_untargeted import FastGradientSignUntargeted
-from misc_functions import get_params
+#from fast_gradient_sign_untargeted import FastGradientSignUntargeted
+#from misc_functions import get_params
 
 
 classes = (		'plane', 'car', 'bird', 'cat', 'deer',
