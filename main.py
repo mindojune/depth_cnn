@@ -39,6 +39,38 @@ import loaddata
 
 device = 'cpu' #torch.device('cuda' if use_cuda else 'cpu')
 
+def save_stylized(output, depth, image_name, depth_name):
+	#output = output.astype(np.uint8)
+	# img = Image.fromarray(output, 'RGB')
+	# img.save('data/my.png')
+
+	#print(image_name)
+	#print(depth_name)
+
+	output_name = "data/ugi"
+	new_depth_name = "data/ugii"
+
+	# fig = plt.figure()
+	# plt.imshow(output)
+	# plt.axis('off') 
+	# fig.savefig('data/out.png', bbox_inches='tight', pad_inches=0)
+	
+	#plt.savefig(output_name+"uaa")
+
+	#fig = plt.figure()
+	#plt.imshow(depth)
+	#plt.savefig(output_name+"uii")
+
+	#matplotlib.pyplot.imsave("my.jpg", output)
+
+	#output = output.astype(np.float64)
+	output = output.astype(np.uint8)
+	#matplotlib.image.imsave(output_name+".jpg", output)
+	#matplotlib.image.imsave(new_depth_name+".png", depth)
+	matplotlib.pyplot.imsave(output_name+".jpg", output)
+	exit()
+	return
+
 
 def visualize_trio(image, depth, output):
 	cols = 1
@@ -58,6 +90,8 @@ def visualize_trio(image, depth, output):
 
 	return
 
+
+
 def single_stylize(style_model, image):
 	content_transform = transforms.Compose([
 		transforms.ToTensor(),
@@ -66,44 +100,56 @@ def single_stylize(style_model, image):
 	content_image = content_transform(image)
 	content_image = content_image.unsqueeze(0).to(device)
 	output = style_model(content_image).cpu()
-	output = output.squeeze().permute(1,2,0).int().data.numpy()
+	#output = output.squeeze().permute(1,2,0).int().data.numpy()
+	output = output.squeeze().permute(1,2,0).data.numpy()
 
 	return output
 
-def stylize_NYU(frame):
+def original_NYU(fname):
 	size = len(frame)
-
-
-	models = ["candy" , "mosaic", "rain_princess", "udnie"]
-	#for model in models:
+	images, depths = [], []
 	for idx in range(size):
 		image_name = frame.iloc[idx, 0]
 		depth_name = frame.iloc[idx, 1]
 
-		#image = Image.open(image_name)
-		#depth = Image.open(depth_name)
 		image = matplotlib.image.imread(image_name)
 		depth = matplotlib.image.imread(depth_name)
 
-		with torch.no_grad():
-			style_model = TransformerNet()
-			modelpath = "saved_models/"+models[0]+".pth"
-			state_dict = torch.load(modelpath)
-			# remove saved deprecated running_* keys in InstanceNorm from the checkpoint
-			for k in list(state_dict.keys()):
-				if re.search(r'in\d+\.running_(mean|var)$', k):
-					del state_dict[k]
-			style_model.load_state_dict(state_dict)
-			style_model.to(device)
+		images.append(image)
+		depths.append(depth)
 
-			output = single_stylize(style_model, image)
-			# content_image = content_transform(image)
-			# content_image = content_image.unsqueeze(0).to(device)
-			# output = style_model(content_image).cpu()
-			# output = output.squeeze().permute(1,2,0).int().data.numpy()
+	return images, depths
 
-		visualize_trio(image, depth, output)
-	return
+def stylize_NYU(frame):
+	size = len(frame)
+
+	stylized_set = []
+	depth_set = []
+	models = ["candy" , "mosaic", "rain_princess", "udnie"]
+	for model in models:
+		style_model = TransformerNet()
+		modelpath = "saved_models/"+model+".pth"
+		state_dict = torch.load(modelpath)
+		for k in list(state_dict.keys()):
+			if re.search(r'in\d+\.running_(mean|var)$', k):
+				del state_dict[k]
+		style_model.load_state_dict(state_dict)
+		style_model.to(device)
+
+		for idx in range(size):
+			image_name = frame.iloc[idx, 0]
+			depth_name = frame.iloc[idx, 1]
+
+			image = matplotlib.image.imread(image_name)
+			depth = matplotlib.image.imread(depth_name)
+
+			with torch.no_grad():
+				output = single_stylize(style_model, image)
+			#visualize_trio(image, depth, output)
+			stylized_set.append(output)
+			depth_set.append(depth)
+
+	return stylized_set, depth_set
 
 def main():
 	parser = argparse.ArgumentParser(description='stylized augmentation')
@@ -135,15 +181,24 @@ def main():
 	print("Using ratio:", ratio)
 	print("Using epoch #:", args.epochs)
 
-	# Read NYU Depth Dataset
-	train_frame = loaddata.getTrainingDataFrame()
-	#train_loader = loaddata.getTrainingData(args.batch_size)
-	#test_loader = loaddata.getTestingData(batch_size = 1)
-	#print(train_frame)
+	filename = "data/augmented_set.pkl"
+	if not os.path.exists(filename):
+		# Read NYU Depth Dataset
+		train_frame = loaddata.getTrainingDataFrame()
+		#train_loader = loaddata.getTrainingData(args.batch_size)
+		#test_loader = loaddata.getTestingData(batch_size = 1)
+		#print(train_frame)
 
-
-	stylize_NYU(train_frame)
-	exit()
+		stylized_set, depth_set = stylize_NYU(train_frame)
+		with open(filename, 'wb') as file:
+			data = [stylized_set, depth_set]
+			pickle.dump(data, file)
+	else:
+		print("pkl file found...")
+		with open(filename, 'rb') as file:
+			data = pickle.load(file)
+		style_image = data[0]
+		style_depth = data[1]
 	#################################
 	#################################
 	#################################
