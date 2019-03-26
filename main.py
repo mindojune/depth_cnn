@@ -125,7 +125,9 @@ def stylize_NYU(frame):
 
 	stylized_set = []
 	depth_set = []
-	models = ["candy" , "mosaic", "rain_princess", "udnie"]
+	#models = ["candy" , "mosaic", "rain_princess", "udnie"]
+	models = ["mosaic"]
+
 	for model in models:
 		style_model = TransformerNet()
 		modelpath = "saved_models/"+model+".pth"
