@@ -190,19 +190,19 @@ def main():
 		#test_loader = loaddata.getTestingData(batch_size = 1)
 		#print(train_frame)
 
-		original_image, original_depth = original_NYU(train_frame)
+		#original_image, original_depth = original_NYU(train_frame)
 		style_image, style_depth = stylize_NYU(train_frame)
 		#train_image, train_depth = original_image+style_image, original_depth+style_depth
 		with open(filename, 'wb') as file:
-			data = [train_image, train_depth]
+			data = [style_image, style_depth]
 			pickle.dump(data, file)
 	else:
 		print("pkl file found...")
 		with open(filename, 'rb') as file:
 			data = pickle.load(file)
-		train_image, train_depth = data
+		style_image, style_depth = data
 
-	print(len(train_image), len(train_depth))
+	print(len(style_image), len(style_depth))
 	#train_frame = loaddata.getTrainingDataFrame()
 	#original_depth, original_image = original_NYU(train_frame)
 	#################################
