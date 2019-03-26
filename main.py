@@ -148,7 +148,7 @@ def stylize_NYU(frame):
 			#visualize_trio(image, depth, output)
 			stylized_set.append(output)
 			depth_set.append(depth)
-			break
+			#break
 	return stylized_set, depth_set
 
 def main():
@@ -183,6 +183,7 @@ def main():
 
 	filename = "data/augmented_set.pkl"
 	if not os.path.exists(filename):
+		print("Reading NYU dataset and pickling...")
 		# Read NYU Depth Dataset
 		train_frame = loaddata.getTrainingDataFrame()
 		#train_loader = loaddata.getTrainingData(args.batch_size)
@@ -191,7 +192,7 @@ def main():
 
 		original_image, original_depth = original_NYU(train_frame)
 		style_image, style_depth = stylize_NYU(train_frame)
-		train_image, train_depth = original_image+style_image, original_depth+style_depth
+		#train_image, train_depth = original_image+style_image, original_depth+style_depth
 		with open(filename, 'wb') as file:
 			data = [train_image, train_depth]
 			pickle.dump(data, file)
