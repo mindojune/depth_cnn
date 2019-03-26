@@ -1,6 +1,6 @@
 # Investigating Bias of Depth Estimation CNNs
 
-* TODO: 
+* TODO: Perturb/Play with following:
     * Motion parallax 
     * Depth from motion 
     * Kinetic depth effect 
