@@ -105,7 +105,7 @@ def single_stylize(style_model, image):
 
 	return output
 
-def original_NYU(fname):
+def original_NYU(frame):
 	size = len(frame)
 	images, depths = [], []
 	for idx in range(size):
@@ -148,7 +148,7 @@ def stylize_NYU(frame):
 			#visualize_trio(image, depth, output)
 			stylized_set.append(output)
 			depth_set.append(depth)
-
+			break
 	return stylized_set, depth_set
 
 def main():
@@ -189,16 +189,21 @@ def main():
 		#test_loader = loaddata.getTestingData(batch_size = 1)
 		#print(train_frame)
 
-		stylized_set, depth_set = stylize_NYU(train_frame)
+		original_image, original_depth = original_NYU(train_frame)
+		style_image, style_depth = stylize_NYU(train_frame)
+		train_image, train_depth = original_image+style_image, original_depth+style_depth
 		with open(filename, 'wb') as file:
-			data = [stylized_set, depth_set]
+			data = [train_image, train_depth]
 			pickle.dump(data, file)
 	else:
 		print("pkl file found...")
 		with open(filename, 'rb') as file:
 			data = pickle.load(file)
-		style_image = data[0]
-		style_depth = data[1]
+		train_image, train_depth = data
+
+	print(len(train_image), len(train_depth))
+	#train_frame = loaddata.getTrainingDataFrame()
+	#original_depth, original_image = original_NYU(train_frame)
 	#################################
 	#################################
 	#################################
