@@ -36,8 +36,8 @@ import torch.optim as optim
 from cnn_finetune import make_model
 import loaddata
 
-
-device = 'cpu' #torch.device('cuda' if use_cuda else 'cpu')
+use_cuda = torch.cuda.is_available()
+device= torch.device('cuda' if use_cuda else 'cpu')
 
 def save_stylized(output, depth, image_name, depth_name):
 	#output = output.astype(np.uint8)
@@ -137,6 +137,8 @@ def stylize_NYU(frame):
 				del state_dict[k]
 		style_model.load_state_dict(state_dict)
 		style_model.to(device)
+		print(model)
+		print('size',size)
 
 		for idx in range(size):
 			image_name = frame.iloc[idx, 0]
@@ -150,6 +152,9 @@ def stylize_NYU(frame):
 			#visualize_trio(image, depth, output)
 			stylized_set.append(output)
 			depth_set.append(depth)
+			division_numb=idx/size
+			if idx %1000 == 0:
+				print('image progress','%.5f' %division_numb, '%') 
 			#break
 	return stylized_set, depth_set
 
