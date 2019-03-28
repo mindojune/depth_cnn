@@ -40,8 +40,12 @@ import loaddata
 device = 'cpu' #torch.device('cuda' if use_cuda else 'cpu')
 
 def save_stylized(output, depth, image_name, depth_name, settype):
+	#print(output)
+	#exit()
 
-	output = output.astype(np.uint8)
+	output = output.astype(np.float32)
+	output = output/255.0
+	output = np.clip(output, a_min = 0.0, a_max = 1.0) 
 
 	if settype == "train":
 		output_comps = image_name.split("/")
@@ -68,11 +72,15 @@ def save_stylized(output, depth, image_name, depth_name, settype):
 	if not os.path.exists(depth_path):
 		os.makedirs(depth_path)
 	
+	matplotlib.pyplot.imsave(output_name, output, vmin=0.0,vmax=1.0)
+	matplotlib.pyplot.imsave(depth_name, depth, vmin=0.0,vmax=1.0)
 
-	#print(output_name)
-	matplotlib.pyplot.imsave(output_name, output)
-	matplotlib.pyplot.imsave(depth_name, depth)
-	#exit()
+	#print(output)
+	#matplotlib.pyplot.imshow(output)
+	#plt.show()
+	#plt.imshow(output)
+	#matplotlib.pyplot.imshow(depth)
+	#plt.show()	#
 	return
 
 
@@ -100,13 +108,13 @@ def visualize_trio(image, depth, output):
 def single_stylize(style_model, image):
 	content_transform = transforms.Compose([
 		transforms.ToTensor(),
-		transforms.Lambda(lambda x: x.mul(255))
+		#transforms.Lambda(lambda x: x.mul(255))
 		])
 	content_image = content_transform(image)
 	content_image = content_image.unsqueeze(0).to(device)
 	output = style_model(content_image).cpu()
-	#output = output.squeeze().permute(1,2,0).int().data.numpy()
-	output = output.squeeze().permute(1,2,0).data.numpy()
+	output = output.squeeze().permute(1,2,0).int().data.numpy()
+	#output = output.squeeze().permute(1,2,0).data.numpy()
 
 	return output
 
@@ -150,7 +158,7 @@ def stylize_NYU(frame, settype):
 			image_name = frame.iloc[idx, 0]
 			depth_name = frame.iloc[idx, 1]
 
-			image = matplotlib.image.imread(image_name)
+			image = matplotlib.image.imread(image_name, format="jpg")
 			depth = matplotlib.image.imread(depth_name)
 
 			with torch.no_grad():
