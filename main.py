@@ -36,40 +36,45 @@ import torch.optim as optim
 from cnn_finetune import make_model
 import loaddata
 
-use_cuda = torch.cuda.is_available()
-device= torch.device('cuda' if use_cuda else 'cpu')
 
-def save_stylized(output, depth, image_name, depth_name):
-	#output = output.astype(np.uint8)
-	# img = Image.fromarray(output, 'RGB')
-	# img.save('data/my.png')
+device = 'cpu' #torch.device('cuda' if use_cuda else 'cpu')
 
-	#print(image_name)
-	#print(depth_name)
+def save_stylized(output, depth, image_name, depth_name, settype):
 
-	output_name = "data/ugi"
-	new_depth_name = "data/ugii"
-
-	# fig = plt.figure()
-	# plt.imshow(output)
-	# plt.axis('off') 
-	# fig.savefig('data/out.png', bbox_inches='tight', pad_inches=0)
-	
-	#plt.savefig(output_name+"uaa")
-
-	#fig = plt.figure()
-	#plt.imshow(depth)
-	#plt.savefig(output_name+"uii")
-
-	#matplotlib.pyplot.imsave("my.jpg", output)
-
-	#output = output.astype(np.float64)
 	output = output.astype(np.uint8)
-	#matplotlib.image.imsave(output_name+".jpg", output)
-	#matplotlib.image.imsave(new_depth_name+".png", depth)
-	matplotlib.pyplot.imsave(output_name+".jpg", output)
-	exit()
+
+	if settype == "train":
+		output_comps = image_name.split("/")
+		output_path = output_comps[0]+"/"+"nyu2_"+settype+"_stylized"+"/"+output_comps[2]
+
+		depth_comps = depth_name.split("/")
+		depth_path = depth_comps[0]+"/"+"nyu2_"+settype+"_stylized"+"/"+depth_comps[2]
+		
+		output_name = output_path + "/"+output_comps[3]
+		depth_name = depth_path + "/"+depth_comps[3]
+	else:
+		output_comps = image_name.split("/")
+		output_path = output_comps[0]+"/"+"nyu2_"+settype+"_stylized"#+"/"+output_comps[2]
+
+		depth_comps = depth_name.split("/")
+		depth_path = depth_comps[0]+"/"+"nyu2_"+settype+"_stylized"#+"/"+depth_comps[2]
+		
+		output_name = output_path + "/"+output_comps[2]
+		depth_name = depth_path + "/"+depth_comps[2]
+		#print(output_path, depth_path)
+
+	if not os.path.exists(output_path):
+		os.makedirs(output_path)
+	if not os.path.exists(depth_path):
+		os.makedirs(depth_path)
+	
+
+	#print(output_name)
+	matplotlib.pyplot.imsave(output_name, output)
+	matplotlib.pyplot.imsave(depth_name, depth)
+	#exit()
 	return
+
 
 
 def visualize_trio(image, depth, output):
@@ -120,9 +125,9 @@ def original_NYU(frame):
 
 	return images, depths
 
-def stylize_NYU(frame):
+def stylize_NYU(frame, settype):
 	size = len(frame)
-
+	print("total: ", size)
 	stylized_set = []
 	depth_set = []
 	#models = ["candy" , "mosaic", "rain_princess", "udnie"]
@@ -137,10 +142,11 @@ def stylize_NYU(frame):
 				del state_dict[k]
 		style_model.load_state_dict(state_dict)
 		style_model.to(device)
-		print(model)
-		print('size',size)
 
 		for idx in range(size):
+			#if idx % 1000 == 0:
+			if idx % 1 == 0:
+				print("iter: ", idx)
 			image_name = frame.iloc[idx, 0]
 			depth_name = frame.iloc[idx, 1]
 
@@ -150,13 +156,31 @@ def stylize_NYU(frame):
 			with torch.no_grad():
 				output = single_stylize(style_model, image)
 			#visualize_trio(image, depth, output)
-			stylized_set.append(output)
-			depth_set.append(depth)
-			division_numb=idx/size
-			if idx %1000 == 0:
-				print('image progress','%.5f' %division_numb, '%') 
+			#stylized_set.append(output)
+			#depth_set.append(depth)
 			#break
+			save_stylized(output, depth, image_name, depth_name, settype)
 	return stylized_set, depth_set
+
+def load_pickle(settype):
+	filename = "data/augmented_"+settype+".pkl" #"test.pkl"
+	#filename = "data/augmented_"+settype+"_"+str(i)+".pkl" #"test.pkl"
+	if not os.path.exists(filename):
+		print("Readign NYU dataset and pickling...", settype)
+		# Read NYU Depth Dataset
+		frame = loaddata.getDataFrame(settype)
+		style_image, style_depth = stylize_NYU(frame)
+		with open(filename, 'wb') as file:
+			data = [style_image, style_depth]
+			pickle.dump(data, file)
+	else:
+		print("pkl file found...")
+		with open(filename, 'rb') as file:
+			data = pickle.load(file)
+		style_image, style_depth= data
+
+
+	return style_image, style_depth
 
 def main():
 	parser = argparse.ArgumentParser(description='stylized augmentation')
@@ -185,33 +209,12 @@ def main():
 	args = parser.parse_args()
 	ratio = args.ratio
 	
-	print("Using ratio:", ratio)
-	print("Using epoch #:", args.epochs)
+	train_frame = loaddata.getDataFrame("train")
+	stylize_NYU(train_frame, "train")
 
-	filename = "data/augmented_set.pkl"
-	if not os.path.exists(filename):
-		print("Reading NYU dataset and pickling...")
-		# Read NYU Depth Dataset
-		train_frame = loaddata.getTrainingDataFrame()
-		#train_loader = loaddata.getTrainingData(args.batch_size)
-		#test_loader = loaddata.getTestingData(batch_size = 1)
-		#print(train_frame)
+	test_frame = loaddata.getDataFrame("test")
+	stylize_NYU(test_frame, "test")
 
-		#original_image, original_depth = original_NYU(train_frame)
-		style_image, style_depth = stylize_NYU(train_frame)
-		#train_image, train_depth = original_image+style_image, original_depth+style_depth
-		with open(filename, 'wb') as file:
-			data = [style_image, style_depth]
-			pickle.dump(data, file)
-	else:
-		print("pkl file found...")
-		with open(filename, 'rb') as file:
-			data = pickle.load(file)
-		style_image, style_depth = data
-
-	print(len(style_image), len(style_depth))
-	#train_frame = loaddata.getTrainingDataFrame()
-	#original_depth, original_image = original_NYU(train_frame)
 	#################################
 	#################################
 	#################################
