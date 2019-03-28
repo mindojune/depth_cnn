@@ -31,6 +31,40 @@ class depthDataset(Dataset):
     def __len__(self):
         return len(self.frame)
 
+def getDataFrame(settype):
+    __imagenet_pca = {
+        'eigval': torch.Tensor([0.2175, 0.0188, 0.0045]),
+        'eigvec': torch.Tensor([
+            [-0.5675,  0.7192,  0.4009],
+            [-0.5808, -0.0045, -0.8140],
+            [-0.5836, -0.6948,  0.4203],
+        ])
+    }
+    __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
+                        'std': [0.229, 0.224, 0.225]}
+
+    transformed_training = depthDataset(csv_file='./data/nyu2_'+settype+'.csv',
+                                        transform=transforms.Compose([
+                                            Scale(240),
+                                            RandomHorizontalFlip(),
+                                            RandomRotate(5),
+                                            CenterCrop([304, 228], [152, 114]),
+                                            ToTensor(),
+                                            Lighting(0.1, __imagenet_pca[
+                                                'eigval'], __imagenet_pca['eigvec']),
+                                            ColorJitter(
+                                                brightness=0.4,
+                                                contrast=0.4,
+                                                saturation=0.4,
+                                            ),
+                                            Normalize(__imagenet_stats['mean'],
+                                                      __imagenet_stats['std'])
+                                        ]))
+
+    frame = pd.read_csv('./data/nyu2_'+settype+'.csv', header=None)
+
+    return frame
+
 def getTrainingDataFrame():
     __imagenet_pca = {
         'eigval': torch.Tensor([0.2175, 0.0188, 0.0045]),
