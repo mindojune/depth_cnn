@@ -38,7 +38,7 @@ import loaddata
 
 use_cuda = torch.cuda.is_available()
 device= torch.device('cuda' if use_cuda else 'cpu')
-
+# device = "cpu"
 def save_stylized(output, depth, image_name, depth_name):
 	#output = output.astype(np.uint8)
 	# img = Image.fromarray(output, 'RGB')
@@ -152,8 +152,8 @@ def stylize_NYU(frame):
 			#visualize_trio(image, depth, output)
 			stylized_set.append(output)
 			depth_set.append(depth)
-			division_numb=idx/size
-			if idx %1000 == 0:
+			division_numb=idx/size*100
+			if idx %100 == 0:
 				print('image progress','%.5f' %division_numb, '%') 
 			#break
 	return stylized_set, depth_set
